@@ -1,0 +1,167 @@
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                                     ИСТОЧНИКИ ДАННЫХ                                                    │
+├─────────────────────┬─────────────────────┬─────────────────────┬─────────────────────┬─────────────────────────────────┤
+│      MOEX API       │     Smart-Lab       │      Lenta.ru       │     ЦБ РФ API       │     Отчёты компаний (PDF)       │
+│   цены, объёмы,     │  комментарии,       │   новости,           │  ключевая ставка,   │  (для ручного сбора)            │
+│   индексы           │  посты, ссылки,     │   заголовки          │  курс USD           │                                 │
+│                     │  фундаментальные    │                     │                     │                                 │
+│                     │  данные             │                     │                     │                                 │
+└──────────┬──────────┴──────────┬──────────┴──────────┬──────────┴──────────┬──────────┴───────────────┬─────────────────┘
+           │                     │                     │                     │                        │
+           ▼                     ▼                     ▼                     ▼                        ▼
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                              МОДУЛЬ 1: СБОР ДАННЫХ (RAW)                                                  │
+├─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                                          │
+│  📊 БИРЖЕВЫЕ ДАННЫЕ                          📰 НОВОСТИ И КОММЕНТАРИИ                                                     │
+│  ├── collect_moex.py                        ├── collect_lenta_headers.py                                                │
+│  │   └── data/raw/moex/                     │   └── data/raw/lenta_archive/                                             │
+│  │       ├── stocks.csv (OHLCV)             │       └── {YYYY-MM-DD}.json                                               │
+│  │       └── indices.csv                    │                                                                           │
+│  │                                          ├── collect_forum_comments.py                                               │
+│  ├── collect_fundamental_smartlab.py        │   └── data/raw/forum_comments/                                            │
+│  │   └── data/features/fundamental_raw/     │       └── forum_comments_all.csv                                          │
+│  │       └── fundamental_all_raw.csv        │                                                                           │
+│  │                                          ├── collect_flow_posts_optimized.py                                         │
+│  ├── collect_commodity_prices.py            │   └── data/raw/flow_posts/                                                │
+│  │   └── data/raw/commodities/              │       └── flow_posts_all.csv                                              │
+│  │       └── commodity_prices_global.csv    │                                                                           │
+│  │       (нефть Brent, газ Henry Hub)       ├── collect_*_official_news.py (5 компаний)                                 │
+│  │                                          │   └── data/raw/{company}_official_news/                                   │
+│  └── collect_company_news_links.py          │       └── {company}_official_news_all.csv                                 │
+│      └── data/raw/news_links/               │                                                                           │
+│          └── company_news_links.csv         └── enrich_news_data.py                                                      │
+│           (ссылки на новости)                   └── data/raw/news_links/                                                │
+│                                                     └── company_news_processed.csv (тексты статей)                      │
+└─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+           │                     │                     │                     │                        │
+           ▼                     ▼                     ▼                     ▼                        ▼
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                         МОДУЛЬ 2: КЛАССИФИКАЦИЯ И ОЦЕНКИ ИНФОРМАЦИОННОГО ФОНА (LLM)                     │
+├─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                                          │
+│  🧠 МОДЕЛЬ: Qwen3.5-9B (запускается через llama.cpp)                                                                    │
+│  │                                                                                                                       │
+│  ├── classify_lenta_final.py                                                                                            │
+│  │   Вход: заголовки Lenta                                                                                              │
+│  │   Выход: sentiment (POSITIVE/NEGATIVE/NEUTRAL) + category (WAR/SANCTIONS/OIL_GAS/MARKET/POLITICAL)                  │
+│  │   └── data/features/lenta_classified/lenta_headers_classified.csv                                                    │
+│  │                                                                                                                       │
+│  ├── classify_batch_advanced.py                                                                                         │
+│  │   Вход: комментарии Smart-Lab                                                                                        │
+│  │   Выход: sentiment (POSITIVE/NEGATIVE/NEUTRAL) + category (PRICE/DIVIDENDS/REPORTS/MACRO/NEWS)                      │
+│  │   └── data/features/qwen35_classified/qwen35_classified_all.csv                                                      │
+│  │                                                                                                                       │
+│  ├── analyze_official_news.py                                                                                           │
+│  │   Вход: официальные новости компаний                                                                                 │
+│  │   Выход: sentiment_intensity (STRONG_POSITIVE/.../STRONG_NEGATIVE) + numeric_score + expected_price_impact          │
+│  │   └── data/features/news_sentiment/official_news_with_sentiment.csv                                                  │
+│  │                                                                                                                       │
+│  └── scripts/classify_company_articles.py                                                                               │
+│      Вход: тексты статей о компаниях (из company_news_processed.csv)                                                    │
+│      Выход: sentiment + impact + relevance + category + time_horizon                                                    │
+│      └── data/features/company_articles_classified.csv                                                                  │
+│                                                                                                                          │
+│  📊 ОБРАБОТКА ФУНДАМЕНТАЛЬНЫХ ДАННЫХ                                                                                     │
+│  │                                                                                                                       │
+│  └── src/features/build_fundamental_dataset.py                                                                          │
+│      Вход: fundamental_all_raw.csv                                                                                      │
+│      Выход: EPS, BVPS, NCAV, Graham Number, Graham Formula                                                              │
+│      └── data/features/fundamental_processed/fundamental_metrics.csv                                                    │
+│                                                                                                                          │
+└─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+           │                     │                     │                     │                        │
+           ▼                     ▼                     ▼                     ▼                        ▼
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                              МОДУЛЬ 3: ФОРМИРОВАНИЕ ДАТАСЕТА                                             │
+├─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                                          │
+│  📦 СБОРКА ПОЛНОГО ДАТАСЕТА ДЛЯ ГАЗПРОМА                                                                                 │
+│  │                                                                                                                       │
+│  ├── scripts/build_gazp_complete_dataset.py                                                                             │
+│  │   │                                                                                                                   │
+│  │   │  ОБЪЕДИНЯЕТ:                                                                                                      │
+│  │   │  ├── цены GAZP (stocks.csv)                                                                                      │
+│  │   │  ├── индексы MOEX (indices.csv) → IMOEX, RTSI, MOEXOG, MOEXFN, MOEXMM, MOEXCN                                   │
+│  │   │  ├── нефть Brent, газ Henry Hub (commodity_prices_global.csv)                                                   │
+│  │   │  ├── ключевая ставка ЦБ (cbrapi API)                                                                             │
+│  │   │  ├── курс USD (XML API ЦБ РФ)                                                                                    │
+│  │   │  ├── комментарии Smart-Lab (qwen35_classified_all.csv)                                                          │
+│  │   │  ├── заголовки Lenta (lenta_headers_classified.csv)                                                             │
+│  │   │  └── фундаментальные показатели (gazp_manual_data.csv)                                                          │
+│  │   │                                                                                                                   │
+│  │   └── data/processed/gazp_financial_data/                                                                            │
+│  │       └── GAZP_complete_dataset.csv (51 признак, 2264 записи)                                                        │
+│  │                                                                                                                       │
+│  └── scripts/build_daily_dataset_v2.py (общий датасет для всех компаний)                                                │
+│      └── data/daily_dataset/daily_dataset_2020-01-01_to_2026-03-31.csv                                                 │
+│                                                                                                                          │
+└─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+           │
+           ▼
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                           МОДУЛЬ 4: АНАЛИЗ И ML                                                          │
+├─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                                          │
+│  📊 ПОЛНЫЙ АНАЛИЗ ДАТАСЕТА ГАЗПРОМА                                                                                      │
+│  │                                                                                                                       │
+│  └── scripts/full_analysis.py (ОСНОВНОЙ СКРИПТ АНАЛИЗА)                                                                  │
+│      │                                                                                                                   │
+│      │  СТРОИТ ГРАФИКИ (22 графика):                                                                                     │
+│      │  ├── 01_price_boxplot_by_year.png          (распределение цен по годам)                                          │
+│      │  ├── 02a_pearson_correlation.png            (матрица Pearson)                                                     │
+│      │  ├── 02b_spearman_correlation.png           (матрица Spearman)                                                    │
+│      │  ├── 02c_kendall_lenta.png                  (матрица Kendall для Lenta)                                          │
+│      │  ├── 02d_kendall_comments.png               (матрица Kendall для комментариев)                                   │
+│      │  ├── 02e_top_correlations.png               (барчарт топ-корреляций)                                             │
+│      │  ├── 03_distributions.png                   (гистограммы распределений)                                          │
+│      │  ├── 04a_price_sentiment_volume.png         (цена + сентимент + объём)                                           │
+│      │  ├── 04b_price_comments_categories_gas.png  (цена + категории комментариев + газ)                                │
+│      │  ├── 05_lenta_categories_stack.png          (стек категорий Lenta + цена)                                        │
+│      │  ├── 06_gas_analysis.png                    (анализ газа: scatter, динамика, лаг, по годам)                      │
+│      │  ├── 07_oil_analysis.png                    (анализ нефти: scatter, динамика, лаг, по годам)                     │
+│      │  ├── 08_usd_analysis.png                    (анализ USD: scatter, динамика, лаг, по годам)                       │
+│      │  ├── 09_cbr_analysis.png                    (анализ ставки ЦБ: scatter, динамика, изменения, по годам)           │
+│      │  ├── 10_fundamental_analysis.png            (BVPS, Graham Number, P/E, дисконт)                                  │
+│      │  ├── 11a_correlation_by_year_lenta.png      (корреляции Lenta по годам)                                          │
+│      │  ├── 11b_correlation_by_year_comments.png   (корреляции комментариев по годам)                                   │
+│      │  └── 11c_correlation_by_year_macro.png      (корреляции макропоказателей по годам)                               │
+│      │                                                                                                                   │
+│      │  ГЕНЕРИРУЕТ ОТЧЁТ:                                                                                                │
+│      │  └── data/plots/full_analysis/analysis_report.txt                                                               │
+│      │      ├── полная статистика по всем 51 признакам                                                                  │
+│      │      ├── все корреляции Pearson с ценой                                                                          │
+│      │      ├── все корреляции Spearman с ценой                                                                         │
+│      │      ├── 6 корреляционных матриц (макро, индексы, комментарии, Lenta, фундамент)                                │
+│      │      ├── топ-50 парных корреляций между признаками                                                               │
+│      │      ├── статистика по годам с корреляциями                                                                      │
+│      │      └── список всех признаков                                                                                   │
+│      │                                                                                                                   │
+│      └── data/plots/full_analysis/ (все PNG и TXT)                                                                      │
+│                                                                                                                          │
+│  🤖 ML-МОДЕЛИ (предстоит создать)                                                                                        │
+│  │                                                                                                                       │
+│  └── scripts/build_ml_models.py                                                                                         │
+│      ├── Ridge (линейная регрессия) — для интерпретации коэффициентов                                                   │
+│      ├── Random Forest — для ранжирования важности признаков                                                            │
+│      ├── XGBoost — для максимальной точности прогноза                                                                   │
+│      └── SHAP — для декомпозиции цены на компоненты                                                                     │
+│                                                                                                                          │
+└─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+           │
+           ▼
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                              МОДУЛЬ 5: ВИЗУАЛИЗАЦИЯ                                                      │
+├─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                                          │
+│  🌐 WEB-ИНТЕРФЕЙС (предстоит создать)                                                                                    │
+│  │                                                                                                                       │
+│  └── app.py (Streamlit)                                                                                                 │
+│      ├── выбор компании (GAZP, SBER, LKOH, NVTK, VTBR)                                                                  │
+│      ├── график цены и декомпозиции (SHAP)                                                                               │
+│      ├── сентимент-анализ (стек комментариев и Lenta)                                                                    │
+│      ├── фундаментальные показатели (BVPS, P/E, Graham Number)                                                          │
+│      ├── корреляции с макропоказателями                                                                                  │
+│      └── прогноз на следующий день                                                                                       │
+│                                                                                                                          │
+└─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘

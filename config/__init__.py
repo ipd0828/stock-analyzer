@@ -1,0 +1,15 @@
+# config/__init__.py
+"""Пакет конфигурации проекта"""
+
+from config.paths import PROJECT_ROOT, DATA_DIR, LENTA_ARCHIVE_DIR, MOEX_RAW_DIR, DEBUG_DIR
+from config.settings import START_DATE, END_DATE, REQUEST_DELAY, CHROME_OPTIONS, USER_AGENT
+from config.companies import COMPANIES, TICKERS, TICKER_TO_COMPANY, INDICES
+from config.triggers import MARKET_TRIGGERS, PRIORITIES
+
+__all__ = [
+    'PROJECT_ROOT', 'DATA_DIR', 'LENTA_ARCHIVE_DIR', 'MOEX_RAW_DIR', 'DEBUG_DIR',
+    'START_DATE', 'END_DATE', 'REQUEST_DELAY',
+    'CHROME_OPTIONS', 'USER_AGENT',
+    'COMPANIES', 'TICKERS', 'TICKER_TO_COMPANY',
+    'MARKET_TRIGGERS', 'PRIORITIES', 'INDICES'
+]

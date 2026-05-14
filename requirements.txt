@@ -1,0 +1,47 @@
+# requirements.txt
+# Stock Analyzer — все зависимости
+
+# ===== Web & UI =====
+streamlit>=1.32.0
+watchdog>=4.0.0
+
+# ===== Data Processing =====
+pandas>=2.2.0
+numpy>=1.26.0
+
+# ===== ML Models =====
+scikit-learn>=1.4.0
+xgboost>=2.0.0
+
+# ===== Visualization =====
+matplotlib>=3.8.0
+seaborn>=0.13.0
+
+# ===== Database =====
+psycopg2-binary>=2.9.0
+SQLAlchemy>=2.0.0
+
+# ===== API Clients =====
+requests>=2.31.0
+apimoex==1.4.0
+feedparser>=6.0.0
+
+# ===== LLM & NLP =====
+openai>=1.12.0
+
+# ===== Web Scraping =====
+selenium>=4.18.0
+webdriver-manager>=4.0.0
+beautifulsoup4>=4.12.0
+
+# ===== Macro Data =====
+cbrapi
+lxml>=5.1.0
+
+# ===== MLOps =====
+mlflow>=2.12.0
+prometheus-client>=0.20.0
+
+# ===== Utilities =====
+tqdm>=4.66.0
+python-dotenv>=1.0.0

@@ -1,0 +1,45 @@
+# Виртуальное окружение
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+
+# Данные (парсинг, датасеты, архивы)
+data/
+*.csv
+*.json
+!requirements.txt
+
+# Модели (очень большие)
+models/
+*.gguf
+
+# Логи
+logs/
+*.log
+
+# Переменные окружения (пароли!)
+.env
+
+# Базы данных
+*.db
+*.sqlite3
+
+# Резервные копии
+pg_backups/
+
+# Служебные файлы
+*.egg-info/
+dist/
+build/
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Файлы, создаваемые Docker
+.dockerignore
+Dockerfile*
+docker-compose*.yml
